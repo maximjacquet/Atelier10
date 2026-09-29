@@ -22,7 +22,14 @@
             <h1>Atelier 10</h1>
             <p id="connection-message">Connexion au serveur...</p>
             <p id="launch-time">Heure de lancement : en attente...</p>
-            <p id="refresh-time">Dernier rafraîchissement : en attente...</p>
+            <p id="client-time">Heure actuelle du client : en attente...</p>
+
+            <form id="alarm-form" onsubmit="return false;">
+                <label for="alarme">Choisir une heure :</label>
+                <input type="time" id="alarme" required>
+                <button type="button" id="poke">Envoyer</button>
+            </form>
+            <p id="alarm-response" aria-live="polite"></p>
 
         </div>
 
@@ -36,17 +43,69 @@
 
     </footer>
 
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        const refreshTime = new Date().toLocaleString('fr-FR');
-        document.getElementById('refresh-time').textContent = 'Dernier rafraîchissement : ' + refreshTime;
+        let heureAlarme = null;
+        let minAlarme = null;
+        let alarmeDeclenchee = false;
 
-        socket.on('message', function (message) {
+        $(function () {
+            function updateClientTime() {
+                const now = new Date();
+                const clientTime = now.toLocaleString('fr-FR');
+                $('#client-time').text('Heure actuelle du client : ' + clientTime);
+
+                if (heureAlarme !== null &&
+                    now.getHours() === heureAlarme &&
+                    now.getMinutes() === minAlarme &&
+                    !alarmeDeclenchee) {
+                    alarmeDeclenchee = true;
+                    $('#alarm-response').text('L’alarme sonne ! Il est ' +
+                        String(heureAlarme).padStart(2, '0') + ':' +
+                        String(minAlarme).padStart(2, '0'));
+                }
+            }
+
+            updateClientTime();
+            setInterval(updateClientTime, 1000);
+
+            $('#poke').click(function () {
+                const alarmTime = $('#alarme').val();
+                if (!alarmTime) {
+                    $('#alarm-response').text('Choisis une heure avant de l’envoyer.');
+                    return;
+                }
+
+                socket.emit('message', alarmTime);
+                $('#alarm-response').text('Envoi de ' + alarmTime + '...');
+            });
+        });
+
+
+        socket.on('connection-count', function (message) {
             document.getElementById('connection-message').textContent = message;
         });
+        
         socket.on('launch-time', function (launchTime) {
             document.getElementById('launch-time').textContent = 'Heure de lancement : ' + launchTime;
+        });
+
+        socket.on('message', function (message) {
+            const alarmMatch = /^Nouvelle heure d'alarme : (\d{2}):(\d{2})$/.exec(message);
+            if (!alarmMatch) {
+                return;
+            }
+
+            heureAlarme = Number(alarmMatch[1]);
+            minAlarme = Number(alarmMatch[2]);
+            alarmeDeclenchee = false;
+            $('#alarm-response').text(message);
+        });
+
+        socket.on('alarm-error', function (message) {
+            $('#alarm-response').text(message);
         });
     </script>
 </body>

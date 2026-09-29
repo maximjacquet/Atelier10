@@ -47,8 +47,30 @@ var io = require('socket.io')(server);
 io.sockets.on('connection', function (socket) {
     compteur++;
     console.log(`Vous êtes la connexion ${compteur}`);
-    socket.emit('message', `Vous êtes la connexion ${compteur}`);
+    socket.emit('connection-count', `Vous êtes la connexion ${compteur}`);
     socket.emit('launch-time', heureLancement);
+
+
+    socket.on('message', function (message) {
+        console.log('Un client me parle ! Il me dit : ' + message);
+
+        const timeMatch = typeof message === 'string'
+            ? /^([01]\d|2[0-3]):([0-5]\d)$/.exec(message)
+            : null;
+        if (!timeMatch) {
+            socket.emit('alarm-error', 'Heure invalide.');
+            return;
+        }
+
+        const heureAlarme = Number(timeMatch[1]);
+        const minAlarme = Number(timeMatch[2]);
+        const messageAlarme = 'Nouvelle heure d\'alarme : ' +
+            String(heureAlarme).padStart(2, '0') + ':' +
+            String(minAlarme).padStart(2, '0');
+
+        socket.broadcast.emit('message', messageAlarme);
+        socket.emit('message', messageAlarme);
+    });
 });
 
 

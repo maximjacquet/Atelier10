@@ -8,12 +8,6 @@
     <%- include('../partials/head') %>
 </head>
 
-<script src="/socket.io/socket.io.js"></script>
-<script>
-var socket = io.connect('http://localhost:8080');
-</script>
-
-
 <body class="container">
 
     <header>
@@ -26,6 +20,9 @@ var socket = io.connect('http://localhost:8080');
         <div class="jumbotron">
 
             <h1>Atelier 10</h1>
+            <p id="connection-message">Connexion au serveur...</p>
+            <p id="launch-time">Heure de lancement : en attente...</p>
+            <p id="refresh-time">Dernier rafraîchissement : en attente...</p>
 
         </div>
 
@@ -39,6 +36,19 @@ var socket = io.connect('http://localhost:8080');
 
     </footer>
 
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const refreshTime = new Date().toLocaleString('fr-FR');
+        document.getElementById('refresh-time').textContent = 'Dernier rafraîchissement : ' + refreshTime;
+
+        socket.on('message', function (message) {
+            document.getElementById('connection-message').textContent = message;
+        });
+        socket.on('launch-time', function (launchTime) {
+            document.getElementById('launch-time').textContent = 'Heure de lancement : ' + launchTime;
+        });
+    </script>
 </body>
 
 </html>

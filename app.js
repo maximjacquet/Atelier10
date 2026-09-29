@@ -11,6 +11,15 @@ var app = express();
 app.set('view engine', 'ejs');
 app.set('views', './views');
 
+var now = new Date();
+var annee = now.getFullYear();
+var mois = now.getMonth() + 1;
+var jour = now.getDate();
+var heure = now.getHours();
+var minute = now.getMinutes();
+var seconde = now.getSeconds();
+var heureLancement = `${String(jour).padStart(2, '0')}/${String(mois).padStart(2, '0')}/${annee} à ${String(heure).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(seconde).padStart(2, '0')}`;
+
 
 app.use(express.static('./public'));
 app.use(express.json());
@@ -31,12 +40,18 @@ let server = app.listen(PORT, function () {
     console.log('Server is running on port ' + PORT);
 });
 
+let compteur = 0;
 
 var io = require('socket.io')(server);
 // Quand un client se connecte, on le note dans la console
 io.sockets.on('connection', function (socket) {
-    console.log('Un client est connecté !');
+    compteur++;
+    console.log(`Vous êtes la connexion ${compteur}`);
+    socket.emit('message', `Vous êtes la connexion ${compteur}`);
+    socket.emit('launch-time', heureLancement);
 });
+
+
 
 
 // gestion des erreurs
